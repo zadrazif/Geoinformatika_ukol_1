@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import math
 
 # read input file
 sf = shapefile.Reader(r'obce_tabor.shp')
@@ -19,19 +20,33 @@ shp_dataframe = pd.DataFrame(columns=fields, data=records)
 df = shp_dataframe.assign(coords=shps)
 coords = df['coords'].values.tolist()
 
-# Function for the Best Insertion heuristic
-def BI(coords):
-    # initialize unprocessed nodes, processed nodes and sum of weights (W)
-    u_nodes = coords.copy()
+# Function for searching extreme nodes to initialize the Hamiltonian circle
+def get_extremes(coords):
+    u_nodes = [np.array(c[0]) for c in coords.copy()]
+    nodes_x = [x for x,_ in u_nodes]
+    nodes_y = [y for _,y in u_nodes]
+    nodes_x, nodes_y = zip(*u_nodes)
+    
     p_nodes = []
+
+    # find a node with min and max in x and y
+    min_x = nodes_x.index(min(nodes_x))
+    min_x_coord = p_nodes.append(u_nodes.pop(min_x))
+    min_y = nodes_x.index(min(nodes_x))
+    min_y_coord = p_nodes.append(u_nodes.pop(min_y))
+    max_x = nodes_y.index(min(nodes_y))
+    max_x_coord = p_nodes.append(u_nodes.pop(max_x))
+    max_y = nodes_y.index(min(nodes_y))
+    max_y_coord = p_nodes.append(u_nodes.pop(max_y))
+    
+    return p_nodes, u_nodes
+
+# Function for the Best Insertion heuristic
+def BI(u_nodes, p_nodes):
+    # initialize unprocessed nodes, processed nodes and sum of weights (W)
+    #u_nodes = coords.copy()
+    #p_nodes = []
     W = 0
-
-    # choose three random points to create a circle
-    for u in range(3):
-        random.shuffle(u_nodes)
-        u_i = np.array(u_nodes.pop())
-        p_nodes.append(u_i)
-
     # save starting position
     first = p_nodes[0]
 
@@ -86,13 +101,15 @@ def BI(coords):
     print("W of BI [km]: ", W/1000)
     return W, p_nodes 
 
+p_nodes, u_nodes = get_extremes(coords)
+
 if __name__ == '__main__':
     # compute weights and nodes
-    weight_BI, nodes_BI = BI(coords)
+    weight_BI, nodes_BI = BI(u_nodes, p_nodes)
     
     labels_BI = map(str, list(range(1, len(nodes_BI))))
-    x_nodes_BI = [e[0][0] for e in nodes_BI]
-    y_nodes_BI = [e[0][1] for e in nodes_BI]
+    x_nodes_BI = [e[0] for e in nodes_BI]
+    y_nodes_BI = [e[1] for e in nodes_BI]
 
     # create plot of BI
     plt.figure()
@@ -101,3 +118,4 @@ if __name__ == '__main__':
     for x, y, l in zip(list(x_nodes_BI), list(y_nodes_BI), labels_BI):
         plt.text(x, y, l)
     plt.show()
+
